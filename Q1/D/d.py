@@ -1,0 +1,785 @@
+import matplotlib.pyplot as plt
+import numpy as np
+import matplotlib.markers as markers
+
+class Grid:
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+        self.walls = set()
+        self.goal = None
+
+class Agent:
+    def __init__(self, x, y, grid):
+        self.x = x
+        self.y = y
+        self.actions = ['Up', 'Down', 'Left', 'Right']
+        self.grid = grid
+        self.state_history = [(x, y)]
+        self.action_history = []
+        self.reward_history = []
+
+    def execute_actual_action(self, action):
+        x_dash, y_dash = None, None
+        if action == 'Up':
+            x_dash, y_dash = self.x, self.y + 1
+        elif action == 'Down':
+            x_dash, y_dash = self.x, self.y - 1
+        elif action == 'Left':
+            x_dash, y_dash = self.x - 1, self.y
+        elif action == 'Right':
+            x_dash, y_dash = self.x + 1, self.y
+        
+        if (x_dash, y_dash) in self.grid.walls:
+            if (self.x, self.y) == self.grid.goal:
+                self.reward_history.append(100)
+            else:
+                self.reward_history.append(-1)
+        elif (x_dash, y_dash) == self.grid.goal:
+            self.reward_history.append(100)
+            self.x = x_dash
+            self.y = y_dash
+        else:
+            self.reward_history.append(0)
+            self.x = x_dash
+            self.y = y_dash
+
+    def execute_nominal_action(self, action):
+        self.action_history.append(action)
+        if action == 'Up':
+            actual_action = np.random.choice(self.actions, 1, p = [0.8, 0.2/3, 0.2/3, 0.2/3])[0]
+        if action == 'Down':
+            actual_action = np.random.choice(self.actions, 1, p = [0.2/3, 0.8, 0.2/3, 0.2/3])[0]
+        if action == 'Left':
+            actual_action = np.random.choice(self.actions, 1, p = [0.2/3, 0.2/3, 0.8, 0.2/3])[0]
+        if action == 'Right':
+            actual_action = np.random.choice(self.actions, 1, p = [0.2/3, 0.2/3, 0.2/3, 0.8])[0]
+        self.execute_actual_action(actual_action)
+
+def value_update(V, V_dash, i, j, grid, discount):
+    if (i, j) in grid.walls:
+        return 0
+    all_actions = ['Up', 'Down', 'Left', 'Right']
+    T = np.zeros((5, 4))
+    R = np.zeros((5, 4))
+    x_up, y_up = i, j + 1
+    x_down, y_down = i, j - 1
+    x_left, y_left = i - 1, j
+    x_right, y_right = i + 1, j
+    
+    values = []
+    for action in all_actions:
+        tmp = 0.0
+        if action == 'Up':
+            if (x_up, y_up) in grid.walls:
+                if (i, j) == grid.goal:
+                    tmp += 0.8 * (100 + discount * V[i, j])
+                else:
+                    tmp += 0.8 * (-1 + discount * V[i, j])
+            else:
+                if (x_up, y_up) == grid.goal:
+                    tmp += 0.8 * (100 + discount * V[x_up, y_up])
+                else:
+                    tmp += 0.8 * (0 + discount * V[x_up, y_up])
+
+            if (x_down, y_down) in grid.walls:
+                if (i, j) == grid.goal:
+                    tmp += 0.2/3 * (100 + discount * V[i, j])
+                else:
+                    tmp += 0.2/3 * (-1 + discount * V[i, j])
+            else:
+                if (x_down, y_down) == grid.goal:
+                    tmp += 0.2/3 * (100 + discount * V[x_down, y_down])
+                else:
+                    tmp += 0.2/3 * (0 + discount * V[x_down, y_down])
+
+            if (x_left, y_left) in grid.walls:
+                if (i, j) == grid.goal:
+                    tmp += 0.2/3 * (100 + discount * V[i, j])
+                else:
+                    tmp += 0.2/3 * (-1 + discount * V[i, j])
+            else:
+                if (x_left, y_left) == grid.goal:
+                    tmp += 0.2/3 * (100 + discount * V[x_left, y_left])
+                else:
+                    tmp += 0.2/3 * (0 + discount * V[x_left, y_left])
+
+            if (x_right, y_right) in grid.walls:
+                if (i, j) == grid.goal:
+                    tmp += 0.2/3 * (100 + discount * V[i, j])
+                else:
+                    tmp += 0.2/3 * (-1 + discount * V[i, j])
+            else:
+                if (x_right, y_right) == grid.goal:
+                    tmp += 0.2/3 * (100 + discount * V[x_right, y_right])
+                else:
+                    tmp += 0.2/3 * (0 + discount * V[x_right, y_right])
+        
+        elif action == 'Down':
+            if (x_up, y_up) in grid.walls:
+                if (i, j) == grid.goal:
+                    tmp += 0.2/3 * (100 + discount * V[i, j])
+                else:
+                    tmp += 0.2/3 * (-1 + discount * V[i, j])
+            else:
+                if (x_up, y_up) == grid.goal:
+                    tmp += 0.2/3 * (100 + discount * V[x_up, y_up])
+                else:
+                    tmp += 0.2/3 * (0 + discount * V[x_up, y_up])
+
+            if (x_down, y_down) in grid.walls:
+                if (i, j) == grid.goal:
+                    tmp += 0.8 * (100 + discount * V[i, j])
+                else:
+                    tmp += 0.8 * (-1 + discount * V[i, j])
+            else:
+                if (x_down, y_down) == grid.goal:
+                    tmp += 0.8 * (100 + discount * V[x_down, y_down])
+                else:
+                    tmp += 0.8 * (0 + discount * V[x_down, y_down])
+
+            if (x_left, y_left) in grid.walls:
+                if (i, j) == grid.goal:
+                    tmp += 0.2/3 * (100 + discount * V[i, j])
+                else:
+                    tmp += 0.2/3 * (-1 + discount * V[i, j])
+            else:
+                if (x_left, y_left) == grid.goal:
+                    tmp += 0.2/3 * (100 + discount * V[x_left, y_left])
+                else:
+                    tmp += 0.2/3 * (0 + discount * V[x_left, y_left])
+
+            if (x_right, y_right) in grid.walls:
+                if (i, j) == grid.goal:
+                    tmp += 0.2/3 * (100 + discount * V[i, j])
+                else:
+                    tmp += 0.2/3 * (-1 + discount * V[i, j])
+            else:
+                if (x_right, y_right) == grid.goal:
+                    tmp += 0.2/3 * (100 + discount * V[x_right, y_right])
+                else:
+                    tmp += 0.2/3 * (0 + discount * V[x_right, y_right])
+
+        elif action == 'Left':
+            if (x_up, y_up) in grid.walls:
+                if (i, j) == grid.goal:
+                    tmp += 0.2/3 * (100 + discount * V[i, j])
+                else:
+                    tmp += 0.2/3 * (-1 + discount * V[i, j])
+            else:
+                if (x_up, y_up) == grid.goal:
+                    tmp += 0.2/3 * (100 + discount * V[x_up, y_up])
+                else:
+                    tmp += 0.2/3 * (0 + discount * V[x_up, y_up])
+
+            if (x_down, y_down) in grid.walls:
+                if (i, j) == grid.goal:
+                    tmp += 0.2/3 * (100 + discount * V[i, j])
+                else:
+                    tmp += 0.2/3 * (-1 + discount * V[i, j])
+            else:
+                if (x_down, y_down) == grid.goal:
+                    tmp += 0.2/3 * (100 + discount * V[x_down, y_down])
+                else:
+                    tmp += 0.2/3 * (0 + discount * V[x_down, y_down])
+
+            if (x_left, y_left) in grid.walls:
+                if (i, j) == grid.goal:
+                    tmp += 0.8 * (100 + discount * V[i, j])
+                else:
+                    tmp += 0.8 * (-1 + discount * V[i, j])
+            else:
+                if (x_left, y_left) == grid.goal:
+                    tmp += 0.8 * (100 + discount * V[x_left, y_left])
+                else:
+                    tmp += 0.8 * (0 + discount * V[x_left, y_left])
+
+            if (x_right, y_right) in grid.walls:
+                if (i, j) == grid.goal:
+                    tmp += 0.2/3 * (100 + discount * V[i, j])
+                else:
+                    tmp += 0.2/3 * (-1 + discount * V[i, j])
+            else:
+                if (x_right, y_right) == grid.goal:
+                    tmp += 0.2/3 * (100 + discount * V[x_right, y_right])
+                else:
+                    tmp += 0.2/3 * (0 + discount * V[x_right, y_right])
+
+        elif action == 'Right':
+            if (x_up, y_up) in grid.walls:
+                if (i, j) == grid.goal:
+                    tmp += 0.2/3 * (100 + discount * V[i, j])
+                else:
+                    tmp += 0.2/3 * (-1 + discount * V[i, j])
+            else:
+                if (x_up, y_up) == grid.goal:
+                    tmp += 0.2/3 * (100 + discount * V[x_up, y_up])
+                else:
+                    tmp += 0.2/3 * (0 + discount * V[x_up, y_up])
+
+            if (x_down, y_down) in grid.walls:
+                if (i, j) == grid.goal:
+                    tmp += 0.2/3 * (100 + discount * V[i, j])
+                else:
+                    tmp += 0.2/3 * (-1 + discount * V[i, j])
+            else:
+                if (x_down, y_down) == grid.goal:
+                    tmp += 0.2/3 * (100 + discount * V[x_down, y_down])
+                else:
+                    tmp += 0.2/3 * (0 + discount * V[x_down, y_down])
+
+            if (x_left, y_left) in grid.walls:
+                if (i, j) == grid.goal:
+                    tmp += 0.2/3 * (100 + discount * V[i, j])
+                else:
+                    tmp += 0.2/3 * (-1 + discount * V[i, j])
+            else:
+                if (x_left, y_left) == grid.goal:
+                    tmp += 0.2/3 * (100 + discount * V[x_left, y_left])
+                else:
+                    tmp += 0.2/3 * (0 + discount * V[x_left, y_left])
+
+            if (x_right, y_right) in grid.walls:
+                if (i, j) == grid.goal:
+                    tmp += 0.8 * (100 + discount * V[i, j])
+                else:
+                    tmp += 0.8 * (-1 + discount * V[i, j])
+            else:
+                if (x_right, y_right) == grid.goal:
+                    tmp += 0.8 * (100 + discount * V[x_right, y_right])
+                else:
+                    tmp += 0.8 * (0 + discount * V[x_right, y_right])
+        values.append(tmp)
+    
+    V_dash[i, j] = max(values)
+    return abs(V_dash[i, j] - V[i, j])
+
+
+# Simulation begins here.
+grid_world = Grid(50, 25)
+grid_world.goal = (48, 12)          # defining the goal-state.
+
+# Adding walls to grid.
+for i in range(50):
+    grid_world.walls.add((i, 0))
+    grid_world.walls.add((i, 24))
+for i in range(1, 24):
+    grid_world.walls.add((0, i))
+    grid_world.walls.add((49, i))
+for i in range(1, 12):
+    grid_world.walls.add((25, i))
+    grid_world.walls.add((26, i))
+for i in range(13, 24):
+    grid_world.walls.add((25, i))
+    grid_world.walls.add((26, i))
+
+x, y = None, None
+while (x, y) in grid_world.walls:
+    x, y = np.random.randint(0, 50), np.random.randint(0, 25)
+
+mobile_agent = Agent(x, y, grid_world)
+
+# Take a random policy.
+# arbitrary_policy = []
+# for i in range(50):
+#     tmp = []
+#     for j in range(25):
+#         tmp.append(np.random.choice(mobile_agent.actions, 1)[0])
+#     arbitrary_policy.append(tmp)
+
+V = np.zeros((50, 25))              # initialize values
+
+iterations_99 = 0
+delta_99 = float("inf")
+theta = 0.1
+discount_99 = 0.99
+all_delta_99 = []
+prev_optimal_policy_99 = None
+no_policy_change_99 = 0
+checker_99 = True
+iteration_99 = None
+
+while iterations_99 < 100:      # delta_99 > theta
+    V_dash = np.zeros((50, 25))
+    diff = []
+    for i in range(50):
+        for j in range(25):
+            diff.append(value_update(V, V_dash, i, j, grid_world, discount_99))
+    delta_99 = max(diff)
+    V = V_dash
+    iterations_99 += 1
+    all_delta_99.append(delta_99)
+
+    # Find optimal policy
+    optimal_policy = [[None for j in range(25)] for i in range(50)]
+    for i in range(50):
+        for j in range(25):
+            if (i, j) not in grid_world.walls:
+                pos_values = []
+                value_action_dict = dict()
+                x_up, y_up = i, j + 1
+                x_down, y_down = i, j - 1
+                x_left, y_left = i - 1, j
+                x_right, y_right = i + 1, j
+
+                all_actions = ['Up', 'Down', 'Left', 'Right']
+
+                for action in all_actions:
+                    tmp = 0.0
+                    if action == 'Up':
+                        if (x_up, y_up) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.8 * (100 + discount_99 * V[i, j])
+                            else:
+                                tmp += 0.8 * (-1 + discount_99 * V[i, j])
+                        else:
+                            if (x_up, y_up) == grid_world.goal:
+                                tmp += 0.8 * (100 + discount_99 * V[x_up, y_up])
+                            else:
+                                tmp += 0.8 * (0 + discount_99 * V[x_up, y_up])
+
+                        if (x_down, y_down) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_99 * V[i, j])
+                            else:
+                                tmp += 0.2/3 * (-1 + discount_99 * V[i, j])
+                        else:
+                            if (x_down, y_down) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_99 * V[x_down, y_down])
+                            else:
+                                tmp += 0.2/3 * (0 + discount_99 * V[x_down, y_down])
+
+                        if (x_left, y_left) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_99 * V[i, j])
+                            else:
+                                tmp += 0.2/3 * (-1 + discount_99 * V[i, j])
+                        else:
+                            if (x_left, y_left) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_99 * V[x_left, y_left])
+                            else:
+                                tmp += 0.2/3 * (0 + discount_99 * V[x_left, y_left])
+
+                        if (x_right, y_right) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_99 * V[i, j])
+                            else:
+                                tmp += 0.2/3 * (-1 + discount_99 * V[i, j])
+                        else:
+                            if (x_right, y_right) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_99 * V[x_right, y_right])
+                            else:
+                                tmp += 0.2/3 * (0 + discount_99 * V[x_right, y_right])
+                    
+                    elif action == 'Down':
+                        if (x_up, y_up) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_99 * V[i, j])
+                            else:
+                                tmp += 0.2/3 * (-1 + discount_99 * V[i, j])
+                        else:
+                            if (x_up, y_up) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_99 * V[x_up, y_up])
+                            else:
+                                tmp += 0.2/3 * (0 + discount_99 * V[x_up, y_up])
+
+                        if (x_down, y_down) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.8 * (100 + discount_99 * V[i, j])
+                            else:
+                                tmp += 0.8 * (-1 + discount_99 * V[i, j])
+                        else:
+                            if (x_down, y_down) == grid_world.goal:
+                                tmp += 0.8 * (100 + discount_99 * V[x_down, y_down])
+                            else:
+                                tmp += 0.8 * (0 + discount_99 * V[x_down, y_down])
+
+                        if (x_left, y_left) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_99 * V[i, j])
+                            else:
+                                tmp += 0.2/3 * (-1 + discount_99 * V[i, j])
+                        else:
+                            if (x_left, y_left) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_99 * V[x_left, y_left])
+                            else:
+                                tmp += 0.2/3 * (0 + discount_99 * V[x_left, y_left])
+
+                        if (x_right, y_right) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_99 * V[i, j])
+                            else:
+                                tmp += 0.2/3 * (-1 + discount_99 * V[i, j])
+                        else:
+                            if (x_right, y_right) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_99 * V[x_right, y_right])
+                            else:
+                                tmp += 0.2/3 * (0 + discount_99 * V[x_right, y_right])
+
+                    elif action == 'Left':
+                        if (x_up, y_up) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_99 * V[i, j])
+                            else:
+                                tmp += 0.2/3 * (-1 + discount_99 * V[i, j])
+                        else:
+                            if (x_up, y_up) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_99 * V[x_up, y_up])
+                            else:
+                                tmp += 0.2/3 * (0 + discount_99 * V[x_up, y_up])
+
+                        if (x_down, y_down) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_99 * V[i, j])
+                            else:
+                                tmp += 0.2/3 * (-1 + discount_99 * V[i, j])
+                        else:
+                            if (x_down, y_down) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_99 * V[x_down, y_down])
+                            else:
+                                tmp += 0.2/3 * (0 + discount_99 * V[x_down, y_down])
+
+                        if (x_left, y_left) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.8 * (100 + discount_99 * V[i, j])
+                            else:
+                                tmp += 0.8 * (-1 + discount_99 * V[i, j])
+                        else:
+                            if (x_left, y_left) == grid_world.goal:
+                                tmp += 0.8 * (100 + discount_99 * V[x_left, y_left])
+                            else:
+                                tmp += 0.8 * (0 + discount_99 * V[x_left, y_left])
+
+                        if (x_right, y_right) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_99 * V[i, j])
+                            else:
+                                tmp += 0.2/3 * (-1 + discount_99 * V[i, j])
+                        else:
+                            if (x_right, y_right) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_99 * V[x_right, y_right])
+                            else:
+                                tmp += 0.2/3 * (0 + discount_99 * V[x_right, y_right])
+
+                    elif action == 'Right':
+                        if (x_up, y_up) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_99 * V[i, j])
+                            else:
+                                tmp += 0.2/3 * (-1 + discount_99 * V[i, j])
+                        else:
+                            if (x_up, y_up) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_99 * V[x_up, y_up])
+                            else:
+                                tmp += 0.2/3 * (0 + discount_99 * V[x_up, y_up])
+
+                        if (x_down, y_down) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_99 * V[i, j])
+                            else:
+                                tmp += 0.2/3 * (-1 + discount_99 * V[i, j])
+                        else:
+                            if (x_down, y_down) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_99 * V[x_down, y_down])
+                            else:
+                                tmp += 0.2/3 * (0 + discount_99 * V[x_down, y_down])
+
+                        if (x_left, y_left) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_99 * V[i, j])
+                            else:
+                                tmp += 0.2/3 * (-1 + discount_99 * V[i, j])
+                        else:
+                            if (x_left, y_left) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_99 * V[x_left, y_left])
+                            else:
+                                tmp += 0.2/3 * (0 + discount_99 * V[x_left, y_left])
+
+                        if (x_right, y_right) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.8 * (100 + discount_99 * V[i, j])
+                            else:
+                                tmp += 0.8 * (-1 + discount_99 * V[i, j])
+                        else:
+                            if (x_right, y_right) == grid_world.goal:
+                                tmp += 0.8 * (100 + discount_99 * V[x_right, y_right])
+                            else:
+                                tmp += 0.8 * (0 + discount_99 * V[x_right, y_right])
+                    pos_values.append(tmp)
+                    value_action_dict[action] = tmp
+                max_value = max(pos_values)
+                pos_actions = []
+                for action, value in value_action_dict.items():
+                    if value == max_value:
+                        pos_actions.append(action)
+                optimal_policy[i][j] = np.random.choice(pos_actions, 1)[0]
+
+    if prev_optimal_policy_99 == optimal_policy and checker_99:
+        no_policy_change_99 += 1
+        if no_policy_change_99 > 5:
+            iteration_99 = iterations_99 - 5
+            checker_99 = False
+    else:
+        no_policy_change_99 = 0
+    prev_optimal_policy_99 = optimal_policy
+
+
+
+V = np.zeros((50, 25))  
+
+iterations_01 = 0
+delta_01 = float("inf")
+theta = 0.1
+discount_01 = 0.01
+all_delta_01 = []
+prev_optimal_policy_01 = None
+no_policy_change_01 = 0
+checker_01 = True
+iteration_01 = None
+
+while iterations_01 < 100:     # delta_01 > theta
+    V_dash = np.zeros((50, 25))
+    diff = []
+    for i in range(50):
+        for j in range(25):
+            diff.append(value_update(V, V_dash, i, j, grid_world, discount_01))
+    delta_01 = max(diff)
+    V = V_dash
+    iterations_01 += 1
+    all_delta_01.append(delta_01)
+
+    # Find optimal policy
+    optimal_policy = [[None for j in range(25)] for i in range(50)]
+    for i in range(50):
+        for j in range(25):
+            if (i, j) not in grid_world.walls:
+                pos_values = []
+                value_action_dict = dict()
+                x_up, y_up = i, j + 1
+                x_down, y_down = i, j - 1
+                x_left, y_left = i - 1, j
+                x_right, y_right = i + 1, j
+
+                all_actions = ['Up', 'Down', 'Left', 'Right']
+
+                for action in all_actions:
+                    tmp = 0.0
+                    if action == 'Up':
+                        if (x_up, y_up) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.8 * (100 + discount_01 * V[i, j])
+                            else:
+                                tmp += 0.8 * (-1 + discount_01 * V[i, j])
+                        else:
+                            if (x_up, y_up) == grid_world.goal:
+                                tmp += 0.8 * (100 + discount_01 * V[x_up, y_up])
+                            else:
+                                tmp += 0.8 * (0 + discount_01 * V[x_up, y_up])
+
+                        if (x_down, y_down) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_01 * V[i, j])
+                            else:
+                                tmp += 0.2/3 * (-1 + discount_01 * V[i, j])
+                        else:
+                            if (x_down, y_down) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_01 * V[x_down, y_down])
+                            else:
+                                tmp += 0.2/3 * (0 + discount_01 * V[x_down, y_down])
+
+                        if (x_left, y_left) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_01 * V[i, j])
+                            else:
+                                tmp += 0.2/3 * (-1 + discount_01 * V[i, j])
+                        else:
+                            if (x_left, y_left) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_01 * V[x_left, y_left])
+                            else:
+                                tmp += 0.2/3 * (0 + discount_01 * V[x_left, y_left])
+
+                        if (x_right, y_right) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_01 * V[i, j])
+                            else:
+                                tmp += 0.2/3 * (-1 + discount_01 * V[i, j])
+                        else:
+                            if (x_right, y_right) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_01 * V[x_right, y_right])
+                            else:
+                                tmp += 0.2/3 * (0 + discount_01 * V[x_right, y_right])
+                    
+                    elif action == 'Down':
+                        if (x_up, y_up) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_01 * V[i, j])
+                            else:
+                                tmp += 0.2/3 * (-1 + discount_01 * V[i, j])
+                        else:
+                            if (x_up, y_up) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_01 * V[x_up, y_up])
+                            else:
+                                tmp += 0.2/3 * (0 + discount_01 * V[x_up, y_up])
+
+                        if (x_down, y_down) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.8 * (100 + discount_01 * V[i, j])
+                            else:
+                                tmp += 0.8 * (-1 + discount_01 * V[i, j])
+                        else:
+                            if (x_down, y_down) == grid_world.goal:
+                                tmp += 0.8 * (100 + discount_01 * V[x_down, y_down])
+                            else:
+                                tmp += 0.8 * (0 + discount_01 * V[x_down, y_down])
+
+                        if (x_left, y_left) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_01 * V[i, j])
+                            else:
+                                tmp += 0.2/3 * (-1 + discount_01 * V[i, j])
+                        else:
+                            if (x_left, y_left) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_01 * V[x_left, y_left])
+                            else:
+                                tmp += 0.2/3 * (0 + discount_01 * V[x_left, y_left])
+
+                        if (x_right, y_right) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_01 * V[i, j])
+                            else:
+                                tmp += 0.2/3 * (-1 + discount_01 * V[i, j])
+                        else:
+                            if (x_right, y_right) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_01 * V[x_right, y_right])
+                            else:
+                                tmp += 0.2/3 * (0 + discount_01 * V[x_right, y_right])
+
+                    elif action == 'Left':
+                        if (x_up, y_up) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_01 * V[i, j])
+                            else:
+                                tmp += 0.2/3 * (-1 + discount_01 * V[i, j])
+                        else:
+                            if (x_up, y_up) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_01 * V[x_up, y_up])
+                            else:
+                                tmp += 0.2/3 * (0 + discount_01 * V[x_up, y_up])
+
+                        if (x_down, y_down) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_01 * V[i, j])
+                            else:
+                                tmp += 0.2/3 * (-1 + discount_01 * V[i, j])
+                        else:
+                            if (x_down, y_down) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_01 * V[x_down, y_down])
+                            else:
+                                tmp += 0.2/3 * (0 + discount_01 * V[x_down, y_down])
+
+                        if (x_left, y_left) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.8 * (100 + discount_01 * V[i, j])
+                            else:
+                                tmp += 0.8 * (-1 + discount_01 * V[i, j])
+                        else:
+                            if (x_left, y_left) == grid_world.goal:
+                                tmp += 0.8 * (100 + discount_01 * V[x_left, y_left])
+                            else:
+                                tmp += 0.8 * (0 + discount_01 * V[x_left, y_left])
+
+                        if (x_right, y_right) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_01 * V[i, j])
+                            else:
+                                tmp += 0.2/3 * (-1 + discount_01 * V[i, j])
+                        else:
+                            if (x_right, y_right) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_01 * V[x_right, y_right])
+                            else:
+                                tmp += 0.2/3 * (0 + discount_01 * V[x_right, y_right])
+
+                    elif action == 'Right':
+                        if (x_up, y_up) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_01 * V[i, j])
+                            else:
+                                tmp += 0.2/3 * (-1 + discount_01 * V[i, j])
+                        else:
+                            if (x_up, y_up) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_01 * V[x_up, y_up])
+                            else:
+                                tmp += 0.2/3 * (0 + discount_01 * V[x_up, y_up])
+
+                        if (x_down, y_down) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_01 * V[i, j])
+                            else:
+                                tmp += 0.2/3 * (-1 + discount_01 * V[i, j])
+                        else:
+                            if (x_down, y_down) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_01 * V[x_down, y_down])
+                            else:
+                                tmp += 0.2/3 * (0 + discount_01 * V[x_down, y_down])
+
+                        if (x_left, y_left) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_01 * V[i, j])
+                            else:
+                                tmp += 0.2/3 * (-1 + discount_01 * V[i, j])
+                        else:
+                            if (x_left, y_left) == grid_world.goal:
+                                tmp += 0.2/3 * (100 + discount_01 * V[x_left, y_left])
+                            else:
+                                tmp += 0.2/3 * (0 + discount_01 * V[x_left, y_left])
+
+                        if (x_right, y_right) in grid_world.walls:
+                            if (i, j) == grid_world.goal:
+                                tmp += 0.8 * (100 + discount_01 * V[i, j])
+                            else:
+                                tmp += 0.8 * (-1 + discount_01 * V[i, j])
+                        else:
+                            if (x_right, y_right) == grid_world.goal:
+                                tmp += 0.8 * (100 + discount_01 * V[x_right, y_right])
+                            else:
+                                tmp += 0.8 * (0 + discount_01 * V[x_right, y_right])
+                    pos_values.append(tmp)
+                    value_action_dict[action] = tmp
+                max_value = max(pos_values)
+                pos_actions = []
+                for action, value in value_action_dict.items():
+                    if value == max_value:
+                        pos_actions.append(action)
+                optimal_policy[i][j] = np.random.choice(pos_actions, 1)[0]
+
+    if prev_optimal_policy_01 == optimal_policy and checker_01:
+        no_policy_change_01 += 1
+        if no_policy_change_01 > 5:
+            iteration_01 = iterations_01 - 5
+            checker_01 = False
+    else:
+        no_policy_change_01 = 0
+    prev_optimal_policy_01 = optimal_policy
+
+print('Discount=0.01 had no policy change after ' + str(iteration_01) + ' iterations.')
+print('Discount=0.99 had no policy change after ' + str(iteration_99) + ' iterations.')
+
+# if delta > theta:
+#     print("Completed " + str(iterations) + " iterations without convergence.")
+# else:
+#     print("Completed " + str(iterations) + " iterations with convergence.")
+
+fig = plt.figure(figsize=(10, 10))
+ax = fig.gca()
+# ax.set_xticks(np.arange(0, 51, 1))
+# ax.set_yticks(np.arange(0, 26, 1))
+# ax.set_xlim([-0.5, 49.5])
+# ax.set_ylim([-0.5, 24.5])
+plt.xlabel('Iteration number')
+plt.ylabel('Max-norm error')
+plt.plot(np.arange(1, 101), np.array(all_delta_01, dtype=int), label='discount=0.01')
+plt.plot(np.arange(1, 101), np.array(all_delta_99, dtype=int), label='discount=0.99')
+
+plt.legend()
+plt.savefig('d.png', bbox_inches='tight')
+plt.show()
