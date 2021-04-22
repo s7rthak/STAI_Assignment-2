@@ -111,7 +111,7 @@ for i in range(50):
             for action in ['Up', 'Down', 'Left', 'Right']:
                 Q[((i, j), action)] = 0
 
-num_episodes = 400
+num_episodes = 4000
 steps_in_episodes = 1000
 eps = 0.05
 alpha = 0.25
