@@ -164,13 +164,13 @@ scat2 = plt.scatter([x[0] for x in all_walls], [x[1] for x in all_walls], s=200,
 
 def arrow_coordinates(i, j, action):
     if action == 'Up':
-        return i, j + 0.2, 0, 0.6
+        return i, j + 0.1, 0, 0.7
     elif action == 'Down':
-        return i, j - 0.2, 0, -0.6
+        return i, j - 0.1, 0, -0.7
     elif action == 'Left':
-        return i - 0.2, j, -0.6, 0
+        return i - 0.1, j, -0.7, 0
     elif action == 'Right':
-        return i + 0.2, j, 0.6, 0
+        return i + 0.1, j, 0.7, 0
 
 all_arrows = []
 for i in range(50):
