@@ -1,6 +1,19 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.markers as markers
+from enum import IntEnum
+import time
+
+start_time = time.time()
+
+# actions = IntEnum('Actions', 'UP DOWN LEFT RIGHT')
+class Actions(IntEnum):
+    UP = 0
+    DOWN = 1
+    LEFT = 2
+    RIGHT = 3
+
+all_actions = [Actions.UP, Actions.DOWN, Actions.LEFT, Actions.RIGHT]
 
 class Grid:
     def __init__(self, width, height):
@@ -13,7 +26,7 @@ class Agent:
     def __init__(self, x, y, grid):
         self.x = x
         self.y = y
-        self.actions = ['Up', 'Down', 'Left', 'Right']
+        self.actions = all_actions
         self.grid = grid
         self.state_history = [(x, y)]
         self.nominal_action_history = []
@@ -23,13 +36,13 @@ class Agent:
 
     def execute_actual_action(self, action):
         x_dash, y_dash = None, None
-        if action == 'Up':
+        if action == Actions.UP:
             x_dash, y_dash = self.x, self.y + 1
-        elif action == 'Down':
+        elif action == Actions.DOWN:
             x_dash, y_dash = self.x, self.y - 1
-        elif action == 'Left':
+        elif action == Actions.LEFT:
             x_dash, y_dash = self.x - 1, self.y
-        elif action == 'Right':
+        elif action == Actions.RIGHT:
             x_dash, y_dash = self.x + 1, self.y
         
         if (self.x, self.y) == self.grid.goal:
@@ -51,13 +64,13 @@ class Agent:
 
     def execute_nominal_action(self, action):
         self.nominal_action_history.append(action)
-        if action == 'Up':
+        if action == Actions.UP:
             actual_action = np.random.choice(self.actions, 1, p = [0.8, 0.2/3, 0.2/3, 0.2/3])[0]
-        if action == 'Down':
+        if action == Actions.DOWN:
             actual_action = np.random.choice(self.actions, 1, p = [0.2/3, 0.8, 0.2/3, 0.2/3])[0]
-        if action == 'Left':
+        if action == Actions.LEFT:
             actual_action = np.random.choice(self.actions, 1, p = [0.2/3, 0.2/3, 0.8, 0.2/3])[0]
-        if action == 'Right':
+        if action == Actions.RIGHT:
             actual_action = np.random.choice(self.actions, 1, p = [0.2/3, 0.2/3, 0.2/3, 0.8])[0]
         self.execute_actual_action(actual_action)
 
@@ -70,12 +83,11 @@ class Agent:
         self.reward_history = []
 
 def choose_eps_greedy_action(Q, agent, S, eps):
-    all_q_values = [Q[(S, a)] for a in agent.actions]
+    all_q_values = [Q[S[0]][S[1]][a] for a in all_actions]
     max_q_value = max(all_q_values)
-    pos_actions = [a for a in agent.actions if Q[(S, a)] == max_q_value]
+    pos_actions = [a for a in all_actions if Q[S[0]][S[1]][a] == max_q_value]
     best_action = np.random.choice(pos_actions, 1)[0]
-    weights = [eps/len(agent.actions) if a != best_action else 1 - eps + eps/len(agent.actions) for a in agent.actions]
-
+    weights = [eps/len(all_actions) if a != best_action else 1 - eps + eps/len(all_actions) for a in all_actions]
     return np.random.choice(agent.actions, 1, p = weights)[0]
 
 # Simulation begins here.
@@ -103,15 +115,15 @@ def random_start ():
         x, y = np.random.randint(0, 50), np.random.randint(0, 25)
     return x, y
 
-Q = dict()
+Q = [[[0 for k in range(4)] for j in range(25)] for i in range(50)]
 
-for i in range(50):
-    for j in range(25):
-        if (i, j) not in grid_world.walls:
-            for action in ['Up', 'Down', 'Left', 'Right']:
-                Q[((i, j), action)] = 0
+# for i in range(50):
+#     for j in range(25):
+#         if (i, j) not in grid_world.walls:
+#             for action in ['Up', 'Down', 'Left', 'Right']:
+#                 Q[((i, j), action)] = 0
 
-num_episodes = 4000
+num_episodes = 400
 steps_in_episodes = 1000
 eps = 0.05
 alpha = 0.25
@@ -125,12 +137,14 @@ for i in range(num_episodes):
         A = choose_eps_greedy_action(Q, mobile_agent, S, eps)
         mobile_agent.execute_nominal_action(A)
         S_dash, R = mobile_agent.state_history[-1], mobile_agent.reward_history[-1]
-        Q[(S, A)] = Q[(S, A)] + alpha * (R + discount * max([Q[(S_dash, a)] for a in mobile_agent.actions]) - Q[(S, A)])
+        Q[S[0]][S[1]][A] = Q[S[0]][S[1]][A] + alpha * (R + discount * max([Q[S_dash[0]][S_dash[1]][a] for a in all_actions]) - Q[S[0]][S[1]][A])
         S = S_dash
 
         if S == grid_world.goal:
             # print("broke :(")
             break
+
+print('Took ' + str(time.time() - start_time) + ' seconds')
 
 Pi = [[None for j in range(25)] for i in range(50)]
 V = np.zeros((50, 25))
@@ -138,8 +152,8 @@ V = np.zeros((50, 25))
 for i in range(50):
     for j in range(25):
         if (i, j) not in grid_world.walls:
-            best_value = max([Q[((i, j), a)] for a in mobile_agent.actions])
-            pos_policy = [(Q[((i, j), a)], a) for a in mobile_agent.actions if Q[((i, j), a)] == best_value]
+            best_value = max([Q[i][j][a] for a in all_actions])
+            pos_policy = [(Q[i][j][a], a) for a in mobile_agent.actions if Q[i][j][a] == best_value]
             (value, action) = pos_policy[np.random.choice(len(pos_policy), 1)[0]]
             V[i, j] = value
             Pi[i][j] = action

@@ -1,6 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.markers as markers
+import time
+
+start_time = time.time()
 
 class Grid:
     def __init__(self, width, height):
@@ -131,3 +134,5 @@ for i in range(num_episodes):
         if S == grid_world.goal:
             # print("broke :(")
             break 
+
+print('Took ' + str(time.time() - start_time) + ' seconds')
