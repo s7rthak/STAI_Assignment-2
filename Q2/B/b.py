@@ -162,5 +162,25 @@ wall_color = ['r']*len(all_walls)
 scat1 = plt.scatter(all_points[:, 1], all_points[:, 0], s=200, c=X[:, 0], cmap='Greys', edgecolors='k', marker=marker)
 scat2 = plt.scatter([x[0] for x in all_walls], [x[1] for x in all_walls], s=200, c=wall_color, edgecolors='k', marker=marker)
 
+def arrow_coordinates(i, j, action):
+    if action == 'Up':
+        return i, j + 0.2, 0, 0.6
+    elif action == 'Down':
+        return i, j - 0.2, 0, -0.6
+    elif action == 'Left':
+        return i - 0.2, j, -0.6, 0
+    elif action == 'Right':
+        return i + 0.2, j, 0.6, 0
+
+all_arrows = []
+for i in range(50):
+    for j in range(25):
+        if Pi[i][j] != None:
+            x, y, dx, dy = arrow_coordinates(i, j, Pi[i][j])
+            all_arrows.append((x, y, dx, dy))
+
+for i in range(len(all_arrows)):
+    plt.arrow(all_arrows[i][0], all_arrows[i][1], all_arrows[i][2], all_arrows[i][3], length_includes_head=True, head_width=0.15, edgecolor='royalblue', facecolor='y')
+
 plt.savefig('b.png', bbox_inches='tight')
 plt.show()
