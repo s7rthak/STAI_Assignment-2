@@ -1,13 +1,13 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.markers as markers
-from enum import IntEnum
+# from enum import IntEnum
 import time
 
 start_time = time.time()
 
 # actions = IntEnum('Actions', 'UP DOWN LEFT RIGHT')
-class Actions(IntEnum):
+class Actions():
     UP = 0
     DOWN = 1
     LEFT = 2
@@ -83,9 +83,9 @@ class Agent:
         self.reward_history = []
 
 def choose_eps_greedy_action(Q, agent, S, eps):
-    all_q_values = [Q[S[0]][S[1]][a] for a in all_actions]
-    max_q_value = max(all_q_values)
-    pos_actions = [a for a in all_actions if Q[S[0]][S[1]][a] == max_q_value]
+    # all_q_values = [Q[S[0], S[1], a] for a in all_actions]
+    max_q_value = np.max(Q[S[0], S[1]])
+    pos_actions = [a for a in all_actions if Q[S[0], S[1], a] == max_q_value]
     best_action = np.random.choice(pos_actions, 1)[0]
     weights = [eps/len(all_actions) if a != best_action else 1 - eps + eps/len(all_actions) for a in all_actions]
     return np.random.choice(agent.actions, 1, p = weights)[0]
@@ -115,7 +115,7 @@ def random_start ():
         x, y = np.random.randint(0, 50), np.random.randint(0, 25)
     return x, y
 
-Q = [[[0 for k in range(4)] for j in range(25)] for i in range(50)]
+Q = np.zeros((50, 25, 4))
 
 # for i in range(50):
 #     for j in range(25):
@@ -137,7 +137,7 @@ for i in range(num_episodes):
         A = choose_eps_greedy_action(Q, mobile_agent, S, eps)
         mobile_agent.execute_nominal_action(A)
         S_dash, R = mobile_agent.state_history[-1], mobile_agent.reward_history[-1]
-        Q[S[0]][S[1]][A] = Q[S[0]][S[1]][A] + alpha * (R + discount * max([Q[S_dash[0]][S_dash[1]][a] for a in all_actions]) - Q[S[0]][S[1]][A])
+        Q[S[0], S[1], A] = Q[S[0], S[1], A] + alpha * (R + discount * np.max(Q[S_dash[0], S_dash[1]]) - Q[S[0], S[1], A])
         S = S_dash
 
         if S == grid_world.goal:
@@ -152,8 +152,8 @@ V = np.zeros((50, 25))
 for i in range(50):
     for j in range(25):
         if (i, j) not in grid_world.walls:
-            best_value = max([Q[i][j][a] for a in all_actions])
-            pos_policy = [(Q[i][j][a], a) for a in mobile_agent.actions if Q[i][j][a] == best_value]
+            best_value = np.max(Q[i, j])
+            pos_policy = [(Q[i, j, a], a) for a in mobile_agent.actions if Q[i, j, a] == best_value]
             (value, action) = pos_policy[np.random.choice(len(pos_policy), 1)[0]]
             V[i, j] = value
             Pi[i][j] = action
@@ -165,9 +165,9 @@ ax.set_yticks(np.arange(0, 26, 1))
 ax.set_xlim([-0.5, 49.5])
 ax.set_ylim([-0.5, 24.5])
 marker = markers.MarkerStyle(marker='s')
-P = np.arange(25)
-Q = np.arange(50)
-all_points = np.dstack(np.meshgrid(P, Q)).reshape(-1, 2)
+Y = np.arange(25)
+Z = np.arange(50)
+all_points = np.dstack(np.meshgrid(Y, Z)).reshape(-1, 2)
 X = V.reshape(-1, 1)
 all_walls = list(grid_world.walls)
 wall_color = ['r']*len(all_walls)
