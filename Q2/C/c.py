@@ -183,6 +183,6 @@ for i in range(3):
     for i in range(len(all_arrows)):
         plt.arrow(all_arrows[i][0], all_arrows[i][1], all_arrows[i][2], all_arrows[i][3], length_includes_head=True, head_width=0.15, edgecolor='royalblue', facecolor='y')
 
-    plt.savefig('b_eps_' + str(eps)+'.png', bbox_inches='tight')
+    plt.savefig('c_eps_' + str(eps)+'.png', bbox_inches='tight')
     plt.show()
     eps = eps * 10
