@@ -145,3 +145,4 @@ for i in range(2):
     plt.ylabel('Rewards')
     plt.savefig('d_eps_' + str(eps) + '.png')
     plt.show()
+    eps = eps * 10
