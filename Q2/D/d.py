@@ -135,9 +135,8 @@ for it in range(2):
                 break
         if i != 0:
             rewards[it][i] = rewards[it][i]/(i+1) + rewards[it][i-1]*(i)/(i+1)
-    # fig = plt.figure() 
-    # ax = fig.add_axes([0,0,1,1])
     arr = np.array( [i+1 for i in range(num_episodes)])
+    eps = eps * 10
 
 plt.plot(arr ,rewards[0], '-r', label = "0.05")
 plt.plot(arr ,rewards[1], '-g', label = "0.5")
