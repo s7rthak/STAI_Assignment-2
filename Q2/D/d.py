@@ -141,6 +141,7 @@ for it in range(2):
 
 plt.plot(arr ,rewards[0], '-r', label = "0.05")
 plt.plot(arr ,rewards[1], '-g', label = "0.5")
+plt.legend(loc="lower right")
 plt.xlabel('Episodes')
 plt.ylabel('Rewards')
 plt.savefig('2_d.png')
