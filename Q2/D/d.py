@@ -1,4 +1,3 @@
-
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.markers as markers
@@ -79,8 +78,10 @@ def choose_eps_greedy_action(Q, agent, S, eps):
 
     return np.random.choice(agent.actions, 1, p = weights)[0]
 
+num_episodes = 4000
 eps = 0.05
-for i in range(2):
+rewards = [np.zeros(num_episodes),np.zeros(num_episodes)]
+for it in range(2):
     # Simulation begins here.
     grid_world = Grid(50, 25)
     grid_world.goal = (48, 12)          # defining the goal-state.
@@ -114,13 +115,11 @@ for i in range(2):
                 for action in ['Up', 'Down', 'Left', 'Right']:
                     Q[((i, j), action)] = 0
 
-    num_episodes = 4000
     steps_in_episodes = 1000
     alpha = 0.25
     discount = 0.99
     mobile_agent = Agent(1, 1, grid_world)
 
-    rewards = np.zeros(num_episodes);
     for i in range(num_episodes):
         mobile_agent.clear_history(*random_start())
         S = (mobile_agent.x, mobile_agent.y)
@@ -130,19 +129,19 @@ for i in range(2):
             S_dash, R = mobile_agent.state_history[-1], mobile_agent.reward_history[-1]
             Q[(S, A)] = Q[(S, A)] + alpha * (R + discount * max([Q[(S_dash, a)] for a in mobile_agent.actions]) - Q[(S, A)])
             S = S_dash
-            rewards[i]+=R
+            rewards[it][i]+=R
 
             if S == grid_world.goal:
-                # print("broke :(")
                 break
         if i != 0:
-            rewards[i] = rewards[i]/(i+1) + rewards[i-1]*(i)/(i+1)
+            rewards[it][i] = rewards[it][i]/(i+1) + rewards[it][i-1]*(i)/(i+1)
     # fig = plt.figure() 
     # ax = fig.add_axes([0,0,1,1])
     arr = np.array( [i+1 for i in range(num_episodes)])
-    plt.bar(arr ,rewards)
-    plt.xlabel('Episodes')
-    plt.ylabel('Rewards')
-    plt.savefig('d_eps_' + str(eps) + '.png')
-    plt.show()
-    eps = eps * 10
+
+plt.plot(arr ,rewards[0], '-r', label = "0.05")
+plt.plot(arr ,rewards[1], '-g', label = "0.5")
+plt.xlabel('Episodes')
+plt.ylabel('Rewards')
+plt.savefig('2_d.png')
+plt.show()
