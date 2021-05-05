@@ -297,7 +297,7 @@ all_delta_99 = []
 prev_optimal_policy_99 = None
 no_policy_change_99 = 0
 checker_99 = True
-iteration_99 = None
+iteration_99 = 1
 
 while iterations_99 < 100:      # delta_99 > theta
     V_dash = np.zeros((50, 25))
@@ -535,7 +535,7 @@ all_delta_01 = []
 prev_optimal_policy_01 = None
 no_policy_change_01 = 0
 checker_01 = True
-iteration_01 = None
+iteration_01 = 1
 
 while iterations_01 < 100:     # delta_01 > theta
     V_dash = np.zeros((50, 25))

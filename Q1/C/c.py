@@ -527,6 +527,24 @@ for i in range(50):
                     pos_actions.append(action)
             optimal_policy[i][j] = np.random.choice(pos_actions, 1)[0]
 
+
+def arrow_coordinates(i, j, action):
+    if action == 'Up':
+        return i, j + 0.1, 0, 0.7
+    elif action == 'Down':
+        return i, j - 0.1, 0, -0.7
+    elif action == 'Left':
+        return i - 0.1, j, -0.7, 0
+    elif action == 'Right':
+        return i + 0.1, j, 0.7, 0
+
+all_arrows = []
+for i in range(50):
+    for j in range(25):
+        if optimal_policy[i][j] != None:
+            x, y, dx, dy = arrow_coordinates(i, j, optimal_policy[i][j])
+            all_arrows.append((x, y, dx, dy))
+
 start_x, start_y = 1, 1
 # Draw sample execution of optimal policy
 test_agent = Agent(start_x, start_y, grid_world)
@@ -556,15 +574,21 @@ scat1 = plt.scatter(all_points[:, 1], all_points[:, 0], s=200, facecolor='w', ed
 scat2 = plt.scatter([x[0] for x in all_walls], [x[1] for x in all_walls], s=200, c=wall_color, edgecolors='k', marker=marker)
 scat3 = plt.scatter([test_agent.state_history[i][0] for i in range(len(test_agent.state_history))], [test_agent.state_history[i][1] for i in range(len(test_agent.state_history))], s=200, c=X, cmap=cmap, facecolor='w', edgecolors='k', marker=marker)
 
+for i in range(len(all_arrows)):
+    plt.arrow(all_arrows[i][0], all_arrows[i][1], all_arrows[i][2], all_arrows[i][3], length_includes_head=True, head_width=0.15, edgecolor='royalblue', facecolor='y')
+
 norm = colors.Normalize(vmin=1, vmax=len(test_agent.state_history))
 sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
 plt.colorbar(sm, label='Steps')
 plt.savefig('c_test_run.png', bbox_inches='tight')
 plt.show()
 
+
+
+
+
 # Count visits    
-visit_count = [[0 for j in range(25)] for i in range(50)]
-visit_count = np.array(visit_count, dtype=int)
+visit_count = np.zeros((50, 25), dtype=int)
 
 # Run episodes
 episode_sz = 75
@@ -595,14 +619,16 @@ P = np.arange(25)
 Q = np.arange(50)
 all_points = np.dstack(np.meshgrid(P, Q)).reshape(-1, 2)
 X = visit_count.reshape(-1, 1)
+# X = np.log(X)
 cmap = 'viridis'
+scat3 = plt.scatter(all_points[:, 1], all_points[:, 0], s=200, facecolor='w', edgecolors='k', marker=marker)
 scat1 = plt.scatter(all_points[:, 1], all_points[:, 0], c=X[:, 0], cmap=cmap, s=200, facecolor='w', edgecolors='k', marker=marker)
 # for i in range(50):
 #     for j in range(25):
 #         plt.text(i, j, str(visit_count[i, j]))
 scat2 = plt.scatter([x[0] for x in all_walls], [x[1] for x in all_walls], s=200, c=wall_color, edgecolors='k', marker=marker)
 
-norm = colors.Normalize(vmin=np.min(visit_count), vmax=np.max(visit_count))
+norm = colors.Normalize(vmin=np.min(X), vmax=np.max(X))
 sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
 plt.colorbar(sm, label='Visit count')
 plt.savefig('c_' + str(episode_sz) + '.png', bbox_inches='tight')
