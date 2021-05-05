@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.markers as markers
-import matplotlib as mpl
+import matplotlib.colors as colors
 
 class Grid:
     def __init__(self, width, height):
@@ -526,12 +526,47 @@ for i in range(50):
                 if value == max_value:
                     pos_actions.append(action)
             optimal_policy[i][j] = np.random.choice(pos_actions, 1)[0]
-    
+
+start_x, start_y = 1, 1
+# Draw sample execution of optimal policy
+test_agent = Agent(start_x, start_y, grid_world)
+
+while test_agent.state_history[-1] != grid_world.goal:
+    test_agent.execute_nominal_action(optimal_policy[test_agent.x][test_agent.y])
+
+all_walls = list(grid_world.walls)
+wall_color = ['r']*len(all_walls)
+
+fig = plt.figure(figsize=(18, 7.5))
+ax = fig.gca()
+ax.set_xticks(np.arange(0, 51, 1))
+ax.set_yticks(np.arange(0, 26, 1))
+ax.set_xlim([-0.5, 49.5])
+ax.set_ylim([-0.5, 24.5])
+marker = markers.MarkerStyle(marker='s')
+P = np.arange(25)
+Q = np.arange(50)
+all_points = np.dstack(np.meshgrid(P, Q)).reshape(-1, 2)
+cmap = 'inferno'
+X = list(range(1, len(test_agent.state_history) + 1))
+scat1 = plt.scatter(all_points[:, 1], all_points[:, 0], s=200, facecolor='w', edgecolors='k', marker=marker)
+# for i in range(50):
+#     for j in range(25):
+#         plt.text(i, j, str(visit_count[i, j]))
+scat2 = plt.scatter([x[0] for x in all_walls], [x[1] for x in all_walls], s=200, c=wall_color, edgecolors='k', marker=marker)
+scat3 = plt.scatter([test_agent.state_history[i][0] for i in range(len(test_agent.state_history))], [test_agent.state_history[i][1] for i in range(len(test_agent.state_history))], s=200, c=X, cmap=cmap, facecolor='w', edgecolors='k', marker=marker)
+
+norm = colors.Normalize(vmin=1, vmax=len(test_agent.state_history))
+sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+plt.colorbar(sm, label='Steps')
+plt.savefig('c_test_run.png', bbox_inches='tight')
+plt.show()
+
+# Count visits    
 visit_count = [[0 for j in range(25)] for i in range(50)]
 visit_count = np.array(visit_count, dtype=int)
 
 # Run episodes
-start_x, start_y = 1, 1
 episode_sz = 75
 num_episodes = 200
 
@@ -567,7 +602,7 @@ scat1 = plt.scatter(all_points[:, 1], all_points[:, 0], c=X[:, 0], cmap=cmap, s=
 #         plt.text(i, j, str(visit_count[i, j]))
 scat2 = plt.scatter([x[0] for x in all_walls], [x[1] for x in all_walls], s=200, c=wall_color, edgecolors='k', marker=marker)
 
-norm = mpl.colors.Normalize(vmin=np.min(visit_count), vmax=np.max(visit_count))
+norm = colors.Normalize(vmin=np.min(visit_count), vmax=np.max(visit_count))
 sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
 plt.colorbar(sm, label='Visit count')
 plt.savefig('c_' + str(episode_sz) + '.png', bbox_inches='tight')
